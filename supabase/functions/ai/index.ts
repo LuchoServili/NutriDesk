@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
     return json({ error: 'Tipo de pedido desconocido' }, 400);
   } catch (err) {
     console.error('AI function error:', err);
-    return json({ error: 'Error del servicio de IA' }, 502);
+    const msg = err instanceof Error ? err.message : String(err);
+    return json({ error: 'Error del servicio de IA', detail: msg.slice(0, 300) }, 502);
   }
 });

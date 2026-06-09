@@ -1035,7 +1035,7 @@ const AI = {
     const candidates = [];
     if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) {
       candidates.push({
-        url: `${CFG.SUPABASE_URL}/functions/v1/ai`,
+        url: `${CFG.SUPABASE_URL}/functions/v1/swift-api`,
         headers: { Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}`, apikey: CFG.SUPABASE_ANON_KEY }
       });
     }
