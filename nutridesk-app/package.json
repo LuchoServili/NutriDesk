@@ -1,0 +1,9 @@
+{
+  "name": "nutridesk",
+  "version": "2.1.0",
+  "private": true,
+  "description": "NutriDesk — plataforma para nutricionistas (frontend estático + Netlify Functions)",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
