@@ -68,8 +68,7 @@ export default async (req) => {
     if (body.type === 'plan') {
       const response = await client.messages.create({
         model: 'claude-opus-4-8',
-        max_tokens: 16000,
-        thinking: { type: 'adaptive' },
+        max_tokens: 8192,
         system:
           'Sos un asistente de nutricionistas matriculados en Argentina. Generás planes ' +
           'alimentarios semanales con comidas típicas argentinas accesibles, respetando ' +
