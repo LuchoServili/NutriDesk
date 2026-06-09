@@ -115,7 +115,7 @@ export default async (req) => {
     return json({ error: 'Tipo de pedido desconocido' }, 400);
   } catch (err) {
     console.error('AI function error:', err);
-    return json({ error: 'Error del servicio de IA' }, 502);
+    return json({ error: 'Error del servicio de IA', detail: String(err?.message || err).slice(0, 300) }, 502);
   }
 };
 
