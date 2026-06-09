@@ -1,10 +1,10 @@
-﻿// NutriDesk â€” FunciÃ³n serverless de IA (Netlify Functions v2)
-// La ANTHROPIC_API_KEY vive solo acÃ¡ (variable de entorno en Netlify), nunca en el navegador.
+// NutriDesk — Función serverless de IA (Netlify Functions v2)
+// La ANTHROPIC_API_KEY vive solo acá (variable de entorno en Netlify), nunca en el navegador.
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
-const DAYS = ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'];
+const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const MEALS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena'];
 
 const mealSchema = {
@@ -12,7 +12,7 @@ const mealSchema = {
   properties: {
     name: { type: 'string', description: 'Nombre corto del plato' },
     desc: { type: 'string', description: 'Ingredientes y porciones, ej: "Pechuga 180g + mix verdes"' },
-    kcal: { type: 'integer', description: 'CalorÃ­as estimadas de la comida' },
+    kcal: { type: 'integer', description: 'Calorías estimadas de la comida' },
   },
   required: ['name', 'desc', 'kcal'],
   additionalProperties: false,
@@ -40,28 +40,28 @@ const json = (data, status = 200) =>
 
 function patientContext(p) {
   return [
-    `Paciente: ${p.name}, ${p.age} aÃ±os, sexo ${p.sex === 'M' ? 'masculino' : 'femenino'}.`,
+    `Paciente: ${p.name}, ${p.age} años, sexo ${p.sex === 'M' ? 'masculino' : 'femenino'}.`,
     `Peso: ${p.weight} kg, talla: ${p.height} cm, IMC: ${p.imc}.`,
     `Objetivo: ${p.obj}.`,
-    `PatologÃ­as: ${(p.patho || []).join(', ') || 'ninguna'}.`,
+    `Patologías: ${(p.patho || []).join(', ') || 'ninguna'}.`,
     `Restricciones alimentarias: ${(p.restr || []).join(', ') || 'ninguna'}.`,
-    p.meds ? `MedicaciÃ³n: ${p.meds}.` : '',
-    p.activity ? `Actividad fÃ­sica: ${p.activity}.` : '',
+    p.meds ? `Medicación: ${p.meds}.` : '',
+    p.activity ? `Actividad física: ${p.activity}.` : '',
     p.schedule ? `Horarios habituales: ${p.schedule}.` : '',
     p.prefs ? `Preferencias: ${p.prefs}.` : '',
-    p.evolution ? `EvoluciÃ³n de peso: ${p.evolution}.` : '',
+    p.evolution ? `Evolución de peso: ${p.evolution}.` : '',
   ].filter(Boolean).join('\n');
 }
 
 export default async (req) => {
-  if (req.method !== 'POST') return json({ error: 'MÃ©todo no permitido' }, 405);
+  if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405);
   if (!process.env.ANTHROPIC_API_KEY) return json({ error: 'IA no configurada' }, 503);
 
   let body;
   try {
     body = await req.json();
   } catch {
-    return json({ error: 'JSON invÃ¡lido' }, 400);
+    return json({ error: 'JSON inválido' }, 400);
   }
 
   try {
@@ -70,15 +70,15 @@ export default async (req) => {
         model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system:
-          'Sos un asistente de nutricionistas matriculados en Argentina. GenerÃ¡s planes ' +
-          'alimentarios semanales con comidas tÃ­picas argentinas accesibles, respetando ' +
-          'estrictamente patologÃ­as y restricciones del paciente. Las calorÃ­as deben ser ' +
-          'coherentes con el objetivo. VariÃ¡ los platos entre dÃ­as. El plan serÃ¡ revisado y ' +
+          'Sos un asistente de nutricionistas matriculados en Argentina. Generás planes ' +
+          'alimentarios semanales con comidas típicas argentinas accesibles, respetando ' +
+          'estrictamente patologías y restricciones del paciente. Las calorías deben ser ' +
+          'coherentes con el objetivo. Variá los platos entre días. El plan será revisado y ' +
           'aprobado por la profesional antes de entregarse al paciente.',
         messages: [{
           role: 'user',
           content:
-            `GenerÃ¡ el plan semanal (Lunes a Domingo, 4 comidas por dÃ­a) para este paciente:\n\n` +
+            `Generá el plan semanal (Lunes a Domingo, 4 comidas por día) para este paciente:\n\n` +
             patientContext(body.patient) +
             (body.notes ? `\n\nIndicaciones de la nutricionista: ${body.notes}` : ''),
         }],
@@ -94,17 +94,17 @@ export default async (req) => {
         content: String(m.text || '').slice(0, 4000),
       }));
       if (!history.length || history[0].role !== 'user') {
-        return json({ error: 'ConversaciÃ³n invÃ¡lida' }, 400);
+        return json({ error: 'Conversación inválida' }, 400);
       }
       const response = await client.messages.create({
         model: 'claude-haiku-4-5',
         max_tokens: 1024,
         system:
-          'Sos el asistente clÃ­nico de NutriDesk para nutricionistas matriculadas en Argentina. ' +
-          'RespondÃ©s consultas profesionales sobre el paciente en contexto: requerimientos, manejo ' +
-          'nutricional de patologÃ­as, restricciones, estrategias segÃºn objetivo. SÃ© concreto y breve ' +
-          '(mÃ¡ximo ~150 palabras), usÃ¡ terminologÃ­a profesional y cerrÃ¡ decisiones clÃ­nicas con el ' +
-          'criterio de la profesional. No des diagnÃ³sticos ni indiques/ajustes medicaciÃ³n.\n\n' +
+          'Sos el asistente clínico de NutriDesk para nutricionistas matriculadas en Argentina. ' +
+          'Respondés consultas profesionales sobre el paciente en contexto: requerimientos, manejo ' +
+          'nutricional de patologías, restricciones, estrategias según objetivo. Sé concreto y breve ' +
+          '(máximo ~150 palabras), usá terminología profesional y cerrá decisiones clínicas con el ' +
+          'criterio de la profesional. No des diagnósticos ni indiques/ajustes medicación.\n\n' +
           'Contexto del paciente:\n' + patientContext(body.patient),
         messages: history,
       });
