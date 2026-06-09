@@ -17,7 +17,20 @@ simulada con plantillas). Cada integración se activa sola al configurarla.
 
 ## Puesta en producción (3 pasos)
 
-### 1. Netlify (hosting + IA)
+### 1. IA con Supabase Edge Functions (recomendado — todo gratis)
+
+1. En el dashboard de Supabase: **Edge Functions → Deploy a new function** (vía editor web).
+2. Nombre: `ai`. Pegá el contenido de `supabase/functions/ai/index.ts` y dale **Deploy**.
+3. En **Edge Functions → Secrets** (o Settings → Edge Functions): agregá
+   `ANTHROPIC_API_KEY` = tu key de https://platform.claude.com.
+4. Listo: el frontend ya llama a `https://TU-PROYECTO.supabase.co/functions/v1/ai`
+   automáticamente cuando `config.js` tiene la URL de Supabase.
+
+Con esto Netlify queda solo como hosting estático (gratis, sin variables de
+entorno). La alternativa con Netlify Functions (`netlify/functions/ai.mjs`)
+sigue en el repo por si algún día preferís esa vía:
+
+### 1-bis. Alternativa: Netlify Functions (hosting + IA)
 
 1. Subí la carpeta `nutridesk-app/` a un repo de GitHub (o usá Netlify Drop / `netlify deploy`).
 2. En Netlify: **Add new site → Import from Git** y seleccioná el repo. No hace falta build command; publish directory: `.` (ya está en `netlify.toml`).
