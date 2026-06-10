@@ -1031,16 +1031,32 @@ const AI = {
     return r.json();
   },
 
+  async _userToken() {
+    if (!Cloud.sb) return null;
+    try {
+      const { data } = await Cloud.sb.auth.getSession();
+      return data.session?.access_token || null;
+    } catch { return null; }
+  },
+
   async call(payload) {
     const candidates = [];
     if (CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY) {
+      // Mandar el token del usuario logueado (no la anon key): la función
+      // exige un usuario autenticado para no exponer el gasto de créditos.
+      const token = (await this._userToken()) || CFG.SUPABASE_ANON_KEY;
       candidates.push({
         url: `${CFG.SUPABASE_URL}/functions/v1/swift-api`,
-        headers: { Authorization: `Bearer ${CFG.SUPABASE_ANON_KEY}`, apikey: CFG.SUPABASE_ANON_KEY }
+        headers: { Authorization: `Bearer ${token}`, apikey: CFG.SUPABASE_ANON_KEY }
       });
     }
-    candidates.push({ url: '/api/ai', headers: {} }); // Netlify Function
+    candidates.push({ url: '/api/ai', headers: {} }); // Netlify Function (alternativa)
     if (this._endpoint) {
+      // re-resolver el token en cada llamada (puede haber expirado)
+      if (this._endpoint.url.includes('supabase')) {
+        const token = (await this._userToken()) || CFG.SUPABASE_ANON_KEY;
+        this._endpoint.headers.Authorization = `Bearer ${token}`;
+      }
       return this._post(this._endpoint.url, this._endpoint.headers, payload);
     }
     let lastErr;

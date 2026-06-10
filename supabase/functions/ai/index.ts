@@ -2,8 +2,29 @@
 // Deploy: Supabase Dashboard → Edge Functions → función "swift-api" → pegar este código → Deploy.
 // Secret:  Edge Functions → Secrets → ANTHROPIC_API_KEY = tu key de Anthropic.
 import Anthropic from 'npm:@anthropic-ai/sdk';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') ?? '' });
+
+// Verifica que la request venga de un usuario realmente logueado (no la anon
+// key pública). Devuelve el user o null. SUPABASE_URL/ANON_KEY están inyectadas
+// automáticamente en el entorno de la Edge Function.
+async function getAuthUser(req: Request) {
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  try {
+    const sb = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    );
+    const { data, error } = await sb.auth.getUser(token);
+    if (error || !data?.user) return null;
+    return data.user; // role 'authenticated'; la anon key no devuelve user
+  } catch {
+    return null;
+  }
+}
 
 const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const MEALS = ['Desayuno', 'Almuerzo', 'Merienda', 'Cena'];
@@ -91,9 +112,17 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Método no permitido' }, 405);
   if (!Deno.env.get('ANTHROPIC_API_KEY')) return json({ error: 'IA no configurada' }, 503);
 
+  // Solo usuarios logueados: evita que cualquiera con la anon key pública
+  // consuma créditos de Anthropic.
+  const user = await getAuthUser(req);
+  if (!user) return json({ error: 'No autorizado' }, 401);
+
+  // Límite de tamaño del cuerpo (anti-abuso de tokens).
+  const raw = await req.text();
+  if (raw.length > 20000) return json({ error: 'Pedido demasiado grande' }, 413);
   let body;
   try {
-    body = await req.json();
+    body = JSON.parse(raw);
   } catch {
     return json({ error: 'JSON inválido' }, 400);
   }
