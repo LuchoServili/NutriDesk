@@ -19,19 +19,44 @@ const mealSchema = {
   additionalProperties: false,
 };
 
-const daySchema = {
+// Esquema plano (28 ítems con día/comida como enum): el esquema anidado de
+// 7 días x 4 comidas superaba el límite de tamaño de gramática de la API.
+const planSchema = {
   type: 'object',
-  properties: Object.fromEntries(MEALS.map((m) => [m, mealSchema])),
-  required: MEALS,
+  properties: {
+    items: {
+      type: 'array',
+      description: 'Exactamente 28 ítems: una entrada por cada combinación de día (7) y comida (4).',
+      items: {
+        type: 'object',
+        properties: {
+          day: { type: 'string', enum: DAYS },
+          meal: { type: 'string', enum: MEALS },
+          ...mealSchema.properties,
+        },
+        required: ['day', 'meal', 'name', 'desc', 'kcal'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['items'],
   additionalProperties: false,
 };
 
-const planSchema = {
-  type: 'object',
-  properties: Object.fromEntries(DAYS.map((d) => [d, daySchema])),
-  required: DAYS,
-  additionalProperties: false,
-};
+// deno-lint-ignore no-explicit-any
+function buildPlan(items: any[]): Record<string, Record<string, unknown>> {
+  const plan: Record<string, Record<string, unknown>> = {};
+  for (const d of DAYS) plan[d] = {};
+  for (const it of items || []) {
+    if (DAYS.includes(it.day) && MEALS.includes(it.meal)) {
+      plan[it.day][it.meal] = { name: it.name, desc: it.desc, kcal: it.kcal };
+    }
+  }
+  for (const d of DAYS) for (const m of MEALS) {
+    if (!plan[d][m]) throw new Error(`Plan incompleto: falta ${d}/${m}`);
+  }
+  return plan;
+}
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -94,7 +119,7 @@ Deno.serve(async (req) => {
         output_config: { format: { type: 'json_schema', schema: planSchema } },
       });
       const text = response.content.find((b) => b.type === 'text')?.text ?? '';
-      return json({ plan: JSON.parse(text) });
+      return json({ plan: buildPlan(JSON.parse(text).items) });
     }
 
     if (body.type === 'chat') {
